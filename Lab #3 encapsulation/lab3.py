@@ -24,7 +24,7 @@ class Student:
 				status : str
 		"""
 		try:
-			if type(subject) != Subject:
+			if not isinstance(subject, Subject):
 				raise TypeError
 			if subject in self.__enrolled_subject:
 				return "Already Enrolled"
@@ -49,7 +49,7 @@ class Student:
 				status : str
 		"""
 		try:
-			if type(subject) != Subject:
+			if not isinstance(subject, Subject):
 				raise TypeError
 			if not (subject in self.__enrolled_subject):
 				return "Not Found"
@@ -74,7 +74,7 @@ class Student:
 				None
 		"""
 		accept_grade = ["A", "B", "C", "D", "F"]
-		if not (grade in accept_grade) or type(grade) != str:
+		if not (grade in accept_grade) or not isinstance(grade, str):
 			return "Error"
 
 		if not (subject in self.__enrolled_subject):
@@ -113,7 +113,7 @@ class Student:
 		for index, subject in enumerate(all_subject):
 			subject: Subject = subject
 			grade = subject.get_student_grade(self)
-			credit = subject.get_credit()
+			credit = subject.credit
 
 			if grade == None:
 				continue
@@ -135,7 +135,8 @@ class Subject:
 		self.__subject_name = subject_name
 		self.__credit = credit
 		self.__teacher = set()
-		self.__student = dict()
+		self.__student = list()
+		self.__student_score = list()
 	
 	def assign_teacher(self, teacher: Teacher):
 		"""
@@ -148,7 +149,7 @@ class Subject:
 			Return
 				None
 		"""
-		if type(teacher) != Teacher:
+		if not isinstance(teacher, Teacher):
 			raise TypeError
 		self.__teacher.add(teacher)
 	
@@ -163,8 +164,11 @@ class Subject:
 			Return
 				None
 		"""
-		self.__student[student] = None
-	
+		if not isinstance(student, Student):
+			raise TypeError
+		self.__student.append(student)
+		self.__student_score.append(None)
+
 	def drop_student(self, student: Student):
 		"""
 			Drop student from subject
@@ -176,7 +180,10 @@ class Subject:
 			Return
 				None
 		"""
-		del self.__student[student]
+		if not isinstance(student, Student):
+			raise TypeError
+		self.__student_score.pop(self.__student.index(student))
+		self.__student.remove(student)
 
 	def assign_student_grade(self, student: Student, grade: str):
 		"""
@@ -191,22 +198,26 @@ class Subject:
 			Return
 				None
 		"""
+		if not isinstance(student, Student) or not isinstance(grade, str):
+			raise TypeError
 		if grade == "A":
-			self.__student[student] = 4
+			self.__student_score.insert(self.__student.index(student), 4)
 		elif grade == "B":
-			self.__student[student] = 3
+			self.__student_score.insert(self.__student.index(student), 3)
 		elif grade == "C":
-			self.__student[student] = 2
+			self.__student_score.insert(self.__student.index(student), 2)
 		elif grade == "D":
-			self.__student[student] = 1
+			self.__student_score.insert(self.__student.index(student), 1)
 		elif grade == "F":
-			self.__student[student] = 0
+			self.__student_score.insert(self.__student.index(student), 0)
 
 	def get_student_grade(self, student: Student):
 		"""
 			get grade for student
 		"""
-		return self.__student[student]
+		if not isinstance(student, Student):
+			raise TypeError
+		return self.__student_score[self.__student.index(student)]
 
 	def get_credit(self):
 		"""
@@ -214,6 +225,7 @@ class Subject:
 		"""
 		return self.__credit
 
+	credit = property(fget=get_credit)
 
 # =============================================================================
 # ส่วนที่ 2: Test Script (ใช้งานร่วมกับ Code ด้านบน)

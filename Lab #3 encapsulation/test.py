@@ -1,14 +1,8 @@
 from lab3 import Subject, Teacher, Student
 
-s1 = Subject("1", "1", 1)
-s2 = Subject("2", "2", 2)
-s3 = Subject("3", "3", 3)
+subject1 = Subject("1", "1", 1)
 
-setto = set((s2, s3))
+student1 = Student("1", "Name")
 
-setto.add(s1)
-
-if s1 in setto:
-	print("In")
-else:
-	print("No")
+res1 = student1.enroll(subject1)
+print(f" - Enroll CS101: {res1} (Expected: Done)")
