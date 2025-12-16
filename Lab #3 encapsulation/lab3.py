@@ -96,6 +96,16 @@ class Student:
 		return self.__enrolled_subject
 
 	def get_gps(self) -> float:
+		"""
+			get gps from student
+
+			Input
+				None
+			Return
+				gps - gps of student
+
+				gps - float
+		"""
 		all_grade = 0
 		all_credit = 0
 		all_subject = self.__enrolled_subject
@@ -128,17 +138,59 @@ class Subject:
 		self.__student = dict()
 	
 	def assign_teacher(self, teacher: Teacher):
+		"""
+			Assign Teacher to the subject
+
+			Input
+				teacher - Teacher for a subject
+
+				teacher - Teacher
+			Return
+				None
+		"""
 		if type(teacher) != Teacher:
 			raise TypeError
 		self.__teacher.add(teacher)
 	
 	def enroll_student(self, student: Student):
+		"""
+			Enroll student to subject
+
+			Input
+				student - Student to enroll to subject
+
+				student - Student
+			Return
+				None
+		"""
 		self.__student[student] = None
 	
 	def drop_student(self, student: Student):
+		"""
+			Drop student from subject
+
+			Input
+				student - Student to drop from subject
+
+				student - Student
+			Return
+				None
+		"""
 		del self.__student[student]
 
 	def assign_student_grade(self, student: Student, grade: str):
+		"""
+			Assign student grade
+
+			Input
+				student - Student to assign grade to
+				grade - grade to assign
+
+				student - Student
+				grade - str
+			Return
+				None
+		"""
 		if grade == "A":
 			self.__student[student] = 4
 		elif grade == "B":
@@ -149,11 +201,17 @@ class Subject:
 			self.__student[student] = 1
 		elif grade == "F":
 			self.__student[student] = 0
-	
+
 	def get_student_grade(self, student: Student):
+		"""
+			get grade for student
+		"""
 		return self.__student[student]
 
 	def get_credit(self):
+		"""
+			get credit for subject
+		"""
 		return self.__credit
 
 
