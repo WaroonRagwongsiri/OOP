@@ -11,7 +11,7 @@ class Enrollment:
 
 	def get_subject(self):
 		return self.__subject
-	
+
 	def set_grade(self, grade):
 		self.__grade = grade
 
@@ -126,7 +126,7 @@ class Student:
 			self.__enrolled_subject[found].grade = 0
 		return "Done"
 
-	def get_enrolled_subjects(self):
+	def get_enrolled_subjects(self) -> list:
 		"""
 			Get enrollled subject
 
@@ -256,7 +256,7 @@ def run_tests():
 	
 	# 2.2 ตรวจสอบว่าวิชาหายไปจริงหรือไม่
 	subjects = student1.get_enrolled_subjects()
-	if len(subjects) == 1 and list(subjects)[0] == subject1:
+	if len(subjects) == 1 and subjects[0] == subject1:
 		print(" - Verify Remaining Subjects: PASS")
 	else:
 		print(f" - Verify Remaining Subjects: FAIL (Found {len(subjects)} subjects)")
