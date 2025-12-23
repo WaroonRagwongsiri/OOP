@@ -3,6 +3,7 @@ title OOP Lab4
 
 class Bank
 {
+	- bank_name : String
 	- user_list : List~User~
 	- atm_list : List~ATM~
 	+ add_user(user: User) : void
@@ -23,7 +24,8 @@ class ATM
 {
 	- atm_id : String
 	- money : Double
-	+ insert_card(atm_card: ATMCard, pin: String) : String
+	- bank : ~Bank~
+	+ insert_card(atm_card: ATMCard, pin: String) : Bool
 }
 
 class ATMCard
@@ -39,6 +41,7 @@ class Account
 	- balance : Double
 	- atm_card : ATMCard
 	- transaction_list : List~Transaction~
+	- user : ~User~
 	+ deposit(atm: ATM, amount: Double) : void
 	+ withdraw(atm: ATM, amount: Double) : void
 	+ transfer(atm: ATM, amount: Double, target: Account) : void
@@ -52,15 +55,12 @@ class Transaction
 	- atm_id : String
 	- amount : Double
 	- balance : Double
-	- target_acc_id : String
+	- [target_acc_id] : String
 }
 
-' Relationships
 Bank "1" o-- "*" User : contains
-Bank "1" o-- "*" ATM : contains
-User "1" o-- "*" Account : owns
-Account "1" --> "1" User : has
+Bank "1" <--> "*" ATM : contains
+Account "1" <--> "1" User : has
 Account "1" --> "1" ATMCard : has
 Account "1" o-- "*" Transaction : records
-Account ..> ATM : uses
 @enduml
