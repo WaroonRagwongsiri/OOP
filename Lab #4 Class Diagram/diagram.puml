@@ -1,0 +1,66 @@
+@startuml OOP Lab4
+title OOP Lab4
+
+class Bank
+{
+	- user_list : List~User~
+	- atm_list : List~ATM~
+	+ add_user(user: User) : void
+	+ add_atm_machine(atm: ATM) : void
+	+ get_atm_by_id(id: String) : ATM
+	+ search_account_from_atm(id: String) : Account
+}
+
+class User
+{
+	- user_id : String
+	- name : String
+	- acc_list : List~Account~
+	+ add_account(account: Account) : void
+}
+
+class ATM
+{
+	- atm_id : String
+	- money : Double
+	+ insert_card(atm_card: ATMCard, pin: String) : String
+}
+
+class ATMCard
+{
+	- atm_card_id : String
+	- acc_id : String
+	- pin : String
+}
+
+class Account
+{
+	- acc_id : String
+	- balance : Double
+	- atm_card : ATMCard
+	- transaction_list : List~Transaction~
+	+ deposit(atm: ATM, amount: Double) : void
+	+ withdraw(atm: ATM, amount: Double) : void
+	+ transfer(atm: ATM, amount: Double, target: Account) : void
+	+ add_atm_card(atm_card: ATMCard) : void
+	+ print_transactions() : void
+}
+
+class Transaction
+{
+	- type : String
+	- atm_id : String
+	- amount : Double
+	- balance : Double
+	- target_acc_id : String
+}
+
+' Relationships
+Bank "1" o-- "*" User : contains
+Bank "1" o-- "*" ATM : contains
+User "1" o-- "*" Account : owns
+Account "1" --> "1" User : has
+Account "1" --> "1" ATMCard : has
+Account "1" o-- "*" Transaction : records
+Account ..> ATM : uses
+@enduml
