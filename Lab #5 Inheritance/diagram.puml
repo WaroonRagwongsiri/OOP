@@ -6,14 +6,14 @@ class Bank
 	- bank_name : String
 	- user_list : List~User~
 	- atm_list : List~ATM~
-	+ add_user(user: User) : void
-	+ add_atm_machine(atm: ATMMachine) : void
-	+ add_edc_machine(edc: EDCMachine) : void
-	+ add_counter(counter: Counter) : void
-	+ get_atm_by_id(atm_id: String) : ATMMachine
-	+ get_edc_by_id(edc_id: String) : EDCMachine
-	+ get_counter_by_id(counter_id: String) : Counter
-	+ search_account_from_card(card_no: String) : Account
+	+ add_user(user: User) -> Void
+	+ add_atm_machine(atm: ATMMachine) -> Void
+	+ add_edc_machine(edc: EDCMachine) -> Void
+	+ add_counter(counter: Counter) -> Void
+	+ get_atm_by_id(atm_id: String) -> ATMMachine
+	+ get_edc_by_id(edc_id: String) -> EDCMachine
+	+ get_counter_by_id(counter_id: String) -> Counter
+	+ search_account_from_card(card_no: String) -> Account
 }
 
 class User
@@ -23,35 +23,9 @@ class User
 	- acc_list : List~Account~
 	- counter_list : List~Counter~
 	- edc_list : List~EDC~
-	+ add_account(account: Account) : void
-	+ search_account_from_card(card_no : String) : Account
-	+ get_all_account() : List~Account~
-}
-
-class Card
-{
-	- card_no : String
-	- acc_id : String
-	- pin : String
-	- fees : Float
-	+ validate_pin(pin : String) : bool
-	+ get_card_type() : String
-}
-
-class Account
-{
-	- acc_id : String
-	- balance : Float
-	- atm_card : Card
-	- transaction_list : List~Transaction~
-	- user : ~User~
-	- interest_rate : Float
-	- daily_limit : Float
-	+ deposit(atm: ATM, amount: Float) : void
-	+ withdraw(atm: ATM, amount: Float) : void
-	+ transfer(atm: ATM, amount: Float, target: Account) : void
-	+ add_atm_card(atm_card: Card) : void
-	+ print_transactions() : void
+	+ add_account(account: Account) -> Void
+	+ search_account_from_card(card_no : String) -> Account
+	+ get_all_account() -> List~Account~
 }
 
 class Transaction
@@ -65,24 +39,68 @@ class Transaction
 	- [target_acc_id] : String
 }
 
+class Account
+{
+	- acc_id : String
+	- balance : Float
+	- card : Card
+	- transaction_list : List~Transaction~
+	- user : ~User~
+	+ add_card(card : Card) -> Void
+	- _validate_channel_session(channel : ATMMachine | EDCMachine) -> Bool
+	- _create_transaction(type : String, channel_type : String, channel_id : String, amount : Float, balance : Float, target=None : Account) -> Void
+	+ print_transactions() -> Void
+	+ get_last_transaction() -> Transaction
+	+ get_transactions(count : Float) -> List~Transaction~
+	+ get_transaction_count() -> Integer
+	- _get_channel_id(channel : Channel) -> String
+	+ get_account_type() -> String
+	+ calculate_interest() -> Float
+	- _check_withdraw_limit(amount : Float) -> Bool
+	+ deposit(channel: Channel, amount: Float) -> Void
+	+ withdraw(channel: Channel, amount: Float) -> Void
+	+ transfer(channel: Channel, amount: Float, target: Account) -> Void
+	+ receive_transfer(amount : Float, channel : Channel, source_acc_no : String) -> Void
+}
+
 class SavingAccount
 {
-
+	- INTEREST_RATE : Float
+	+ get_account_type() -> String
+	+ calculate_interest() -> Float
+	- _check_withdraw_limit(amount : Float) -> Bool
 }
 
 class FixedAccount
 {
-
+	- INTEREST_RATE : Float
+	- EARLY_WITHDRAWAL_PENALTY : Float
+	+ get_account_type() -> String
+	+ calculate_interest() -> Float
+	- _check_withdraw_limit(amount : Float) -> Bool
 }
 
 class CurrentAccount
 {
+	+ get_account_type() -> String
+	+ calculate_interest() -> Float
+	- _check_withdraw_limit(amount : Float) -> Bool
+}
 
+class Card
+{
+	- card_no : String
+	- acc_id : String
+	- pin : String
+	+ validate_pin(pin : String) -> Bool
+	+ get_card_type() -> String
 }
 
 class ATMCard
 {
-
+	- ANNUAL_FEE
+	+ get_card_type() -> String
+	+ charge_annual_fee(account : Account) -> Void
 }
 
 class DebitCard
@@ -90,9 +108,19 @@ class DebitCard
 
 }
 
-class Channel
+class ShoppingCard
+{
+	
+}
+
+class PremiumCard
 {
 
+}
+
+class Channel
+{
+	+ authenticate() -> Bool
 }
 
 class ATMMachine
@@ -100,7 +128,13 @@ class ATMMachine
 	- atm_id : String
 	- money : Float
 	- bank : ~Bank~
-	+ insert_card(atm_card: ATMCard, pin: String) : Bool
+	- current_card : Card
+	+ authenticate(card : Card, pin : String) -> Bool
+	+ insert_card(card: Card, pin : String) -> Bool
+	+ eject_card() -> Void
+	+ has_sufficient_cash(amount : Float) -> Bool
+	+ dispense_cash(amount : Float) -> Void
+	+ receive_cash(amount : Float) -> Void
 }
 
 class Counter
@@ -123,14 +157,16 @@ Account "1" <--> "1" User : has
 Account "1" --> "1" Card : has
 Account "1" o-- "*" Transaction : records
 ' Account type
-Account <|-- SavingAccount
-Account <|-- FixedAccount
-Account <|-- CurrentAccount
+Account <|-- SavingAccount : inherit
+Account <|-- FixedAccount : inherit
+Account <|-- CurrentAccount : inherit
 ' Card type
-Card <|-- ATMCard
-Card <|-- DebitCard
+Card <|-- ATMCard : inherit
+Card <|-- DebitCard : inherit
+DebitCard <|-- ShoppingCard : inherit
+DebitCard <|-- PremiumCard : inherit
 ' Channel type
-Channel <|-- ATMMachine
-Channel <|-- Counter
-Channel <|-- EDCMachine
+Channel <|-- ATMMachine : inherit
+Channel <|-- Counter : inherit
+Channel <|-- EDCMachine : inherit
 @enduml
