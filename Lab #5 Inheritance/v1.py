@@ -516,6 +516,7 @@ class Card(ABC):
 	ANNUAL_FEE = 0
 	FEES = 0
 	DAILY_LIMIT = 40000
+	WITHDRAW_LIMIT_PER_TRANSACTION = 40000
 
 	def __init__(self, card_no, account_no, pin):
 		"""TODO: Initialize card attributes"""
@@ -641,7 +642,6 @@ class ATM_Card(Card):
 class DebitCard(Card):
 	ANNUAL_FEE = 300
 	CASHBACK_RATE = 0.1
-	WITHDRAW_LIMIT_PER_TRANSACTION = 40000
 
 	def __init__(self, card_no, account_no, pin):
 		super().__init__(card_no, account_no, pin)
