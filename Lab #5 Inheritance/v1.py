@@ -515,14 +515,14 @@ class Card(ABC):
 	
 	ANNUAL_FEE = 0
 	FEES = 0
-	DAILY_WITHDRAW_LIMIT = 40000
+	DAILY_LIMIT = 40000
 
 	def __init__(self, card_no, account_no, pin):
 		"""TODO: Initialize card attributes"""
 		self.__card_no: str = card_no
 		self.__account_no: str = account_no
 		self.__pin: str = pin
-		self.__daily_withdraw: float = self.DAILY_WITHDRAW_LIMIT
+		self.__daily_withdraw: float = self.DAILY_LIMIT
 	
 	@property
 	def card_no(self):
@@ -575,7 +575,7 @@ class Card(ABC):
 		return amount > self.daily_withdraw_limit
 	
 	def reset_daily_limit(self):
-		self.__daily_withdraw = self.DAILY_WITHDRAW_LIMIT
+		self.__daily_withdraw = self.DAILY_LIMIT
 
 	def charge_annual_fee(self, account):
 		"""หักค่าธรรมเนียมรายปี
@@ -640,7 +640,8 @@ class ATM_Card(Card):
 
 class DebitCard(Card):
 	ANNUAL_FEE = 300
-	CASH_BACK_RATE = 0.1
+	CASHBACK_RATE = 0.1
+	WITHDRAW_LIMIT_PER_TRANSACTION = 40000
 
 	def __init__(self, card_no, account_no, pin):
 		super().__init__(card_no, account_no, pin)
@@ -661,22 +662,22 @@ class DebitCard(Card):
 
 class ShoppingCard(DebitCard):
 	ANNUAL_FEE = 300
-	CASH_BACK_RATE = 0.1
+	CASHBACK_RATE = 0.1
 
 	def get_card_type(self):
-		return "ShoppingCard"
+		return "Shopping Card"
 
 class PremiumCard(DebitCard):
 	ANNUAL_FEE = 500
-	CASH_BACK_RATE = 0.2
-	DAILY_WITHDRAW_LIMIT = 100000
+	CASHBACK_RATE = 0.2
+	DAILY_LIMIT = 100000
 	
 	def __init__(self, card_no, account_no, pin):
 		super().__init__(card_no, account_no, pin)
-		self.__daily_withdraw = self.DAILY_WITHDRAW_LIMIT
+		self.__daily_withdraw = self.DAILY_LIMIT
 
 	def get_card_type(self):
-		return "PremiumCard"
+		return "Premium Card"
 
 # ============================================================================
 # CHANNEL TYPES - Concrete Classes 
@@ -881,9 +882,9 @@ class EDC_machine(Channel):
 			raise PermissionError("Other is using this EDC")
 		account.transfer(self, amount, self.__merchant_account)
 		if isinstance(account.card, PremiumCard):
-			account.card.cashback += amount * account.card.CASH_BACK_RATE
+			account.card.cashback += amount * account.card.CASHBACK_RATE
 		if isinstance(account.card, ShoppingCard) and amount >= 1000:
-			account.card.cashback += amount * account.card.CASH_BACK_RATE
+			account.card.cashback += amount * account.card.CASHBACK_RATE
 
 
 # ============================================================================
@@ -1016,7 +1017,7 @@ class User:
 			raise TypeError("Invalid Type")
 		for index, item in enumerate(self.__account_list):
 			account: Account = item
-			if account.card.card_no == card_no:
+			if getattr(account.card, 'card_no', None) == card_no:
 				return account
 		return None
 	
