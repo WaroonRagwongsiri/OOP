@@ -45,7 +45,6 @@ class Account
 	- user : ~User~
 	- balance : Float
 	- card : Card
-	- daily_withdrawn : Float
 	- INTEREST_RATE : Float
 	- transaction_list : List~Transaction~
 	+ add_card(card : Card) -> Bool
@@ -99,7 +98,8 @@ class Card
 	- acc_id : String
 	- pin : String
 	- ANNUAL_FEE : Float
-	- DAILY_LIMIT : Float
+	- DAILY_WITHDRAW_LIMIT : Float
+	- FEES : Float
 	+ validate_pin(pin : String) -> Bool
 	+ get_card_type() -> String
 }
@@ -127,6 +127,7 @@ class ShoppingCard
 class PremiumCard
 {
 	- ANNUAL_FEE : Float
+	- DAILY_WITHDRAW_LIMIT : Float
 	+ get_card_type() -> String
 }
 
@@ -154,6 +155,7 @@ class Counter
 {
 	- counter_id : String
 	- bank : ~Bank~
+	- current_acc : Account
 	+ authenticate(account : Account, user_id : String) -> Bool
 	+ set_using_account(account : Account) -> Bool
 }
@@ -166,8 +168,9 @@ class EDCMachine
 	- current_card : Card
 	- DAILY_LIMIT : Float
 	+ authenticate(card : Card, pin : String) -> Bool
-	+ insert_card(card: Card, pin : String) -> Bool
+	+ swipe_card(card: Card, pin : String) -> Bool
 	+ eject_card() -> Bool
+	+ pay(account : Account, amount: Float)
 }
 
 ' Bank

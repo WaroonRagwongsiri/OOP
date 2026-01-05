@@ -45,7 +45,6 @@ class Account(ABC):
 		self.__user : User = user
 		self.__balance : float = amount
 		self.__card : Card = None
-		self.__daily_withdrawn : float = 40000
 		self.__transaction_list : list[Transaction] = []
 	
 	# ========== Properties (5 คะแนน) ==========
@@ -114,13 +113,15 @@ class Account(ABC):
 	
 	# ========== Transaction Recording ==========
 	
-	def _create_transaction(self, type: str, channel_type: str, channel_id: str, amount: float, balance: float, target: str=None):
+	def _create_transaction(self, transaction_type: str, channel_type: str, channel_id: str, amount: float, balance: float, target: str=None):
 		"""บันทึก transaction ลง __transaction_list
 		"""
-		if not isinstance(type, str) or not isinstance(channel_type, str) or not isinstance(channel_id, str) or not isinstance(amount, float) or not isinstance(balance, float) or not isinstance(target, str):
+		if not isinstance(transaction_type, str) or not isinstance(channel_type, str) or not isinstance(channel_id, str) or not isinstance(amount, (float, int)) or not isinstance(balance, (float, int)):
+			raise TypeError("Invalid Type")
+		if target != None and not isinstance(target, str):
 			raise TypeError("Invalid Type")
 		self.__transaction_list.append(
-			Transaction(type, channel_type, channel_id, amount, balance, target)
+			Transaction(transaction_type, channel_type, channel_id, amount, balance, target)
 		)
 
 	def print_transactions(self):
@@ -278,19 +279,18 @@ class Account(ABC):
 			self._validate_channel_session(channel)
 		if (amount <= 0):
 			raise ValueError("Invalid Amount")
-		if self._check_withdraw_limit(amount) == False:
-			raise ValueError("Exceed Withdrawal Limit")
+		self._check_withdraw_limit(amount)
 		if self.__balance < amount + self.card.FEES:
 			raise ValueError("Exceed Balance (Annual Fees)")
-		if isinstance(channel, ATM_machine) and self.__balance - amount - self.card.FEES >= channel.WITHDRAW_LIMIT:
-			raise ValueError("Exceed ATM WITHDRAW_LIMIT")
+		if isinstance(channel, ATM_machine) and self.__balance - amount - self.card.FEES < self.card.ANNUAL_FEE:
+			raise ValueError("Exceed Balance (Annual Fees)")
 		if isinstance(channel, ATM_machine) or isinstance(channel, EDC_machine):
-			self._check_withdraw_limit(amount)
+			channel.check_daily_limit(amount)
 		if hasattr(channel, 'has_sufficient_cash'):
 			channel.has_sufficient_cash(amount)
 		self.__balance -= amount
 		if isinstance(channel, ATM_machine) or isinstance(channel, EDC_machine):
-			self.__daily_withdrawn -= amount
+			self.card.DAILY_WITHDRAW_LIMIT -= amount
 		if hasattr(channel, 'dispense_cash'):
 			channel.dispense_cash(amount)
 		self._create_transaction('W', channel.get_channel_type(), channel.get_channel_id(), amount, self.__balance)
@@ -359,7 +359,10 @@ class SavingAccount(Account):
 	- ดอกเบี้ย 0.5% ต่อปี
 	- ถอนไม่เกิน 40,000 บาท/ครั้ง (สำหรับทุกบัตร)
 	"""
-	
+
+	def __init__(self, account_no, user, amount):
+		super().__init__(account_no, user, amount)
+
 	INTEREST_RATE = 0.005  # 0.5%
 	WITHDRAW_LIMIT_PER_TRANSACTION = 40000
 	
@@ -388,11 +391,10 @@ class SavingAccount(Account):
 		- ถ้า amount > WITHDRAW_LIMIT_PER_TRANSACTION
 		- raise ValueError พร้อมข้อความอธิบาย
 		"""
-		if not isinstance(amount, float) and not isinstance(amount, int):
+		if not isinstance(amount, (float, int)):
 			raise TypeError("Invalid Type")
 		if amount > self.WITHDRAW_LIMIT_PER_TRANSACTION:
 			raise ValueError("Exceed WITHDRAW LIMIT PER TRANSACTION")
-
 
 class FixedAccount(Account):
 	"""บัญชีฝากประจำ
@@ -501,6 +503,8 @@ class Card(ABC):
 	"""
 	
 	ANNUAL_FEE = 0
+	FEES = 0
+	DAILY_WITHDRAW_LIMIT = 40000
 
 	def __init__(self, card_no, account_no, pin):
 		"""TODO: Initialize card attributes"""
@@ -720,6 +724,9 @@ class ATM_machine(Channel):
 		if self.__current_card == card:
 			return True
 		return False
+	
+	def check_daily_limit(self, amount : float):
+		return amount > self.WITHDRAW_LIMIT
 
 class Counter(Channel):
 	def __init__(self, counter_id: str):
@@ -727,6 +734,7 @@ class Counter(Channel):
 		if not isinstance(counter_id, str):
 			raise TypeError("Invalid Type")
 		self.__counter_id: str = counter_id
+		self.__current_acc: Account = None
 	
 	@property
 	def counter_id(self):
@@ -737,6 +745,9 @@ class Counter(Channel):
 	
 	def verify_identity(self, account: Account, citizen_id: str):
 		return account.user.validate_citizen_id(citizen_id)
+	
+	def clear_session(self):
+		self.__current_acc = None
 
 	def get_channel_type(self):
 		return "Counter"
@@ -748,7 +759,7 @@ class EDC_machine(Channel):
 
 	DAILY_LIMIT: float = 40000
 
-	def __init__(self, edc_id: str, merchant_account: Account):
+	def __init__(self, edc_id: str, merchant_account: CurrentAccount):
 		super().__init__()
 		if not isinstance(merchant_account, CurrentAccount):
 			raise TypeError("Invalid Account Type")
@@ -759,6 +770,9 @@ class EDC_machine(Channel):
 	@property
 	def edc_id(self) -> str:
 		return self.__edc_id
+	
+	def authenticate():
+		pass
 	
 	def get_channel_type(self):
 		return "EDC_machine"
@@ -773,7 +787,7 @@ class EDC_machine(Channel):
 			return True
 		return False
 	
-	def insert_card(self, card: DebitCard, pin: str):
+	def swipe_card(self, card: DebitCard, pin: str):
 		"""ใส่บัตรและตรวจสอบ PIN
 		
 		TODO:
@@ -791,6 +805,11 @@ class EDC_machine(Channel):
 	def eject_card(self):
 		"""TODO: ตั้ง current_card = None"""
 		self.__current_card = None
+
+	def pay(self, account: Account, amount: float):
+		if not isinstance(account, Account) or (not isinstance(amount, float) and not isinstance(amount, int)):
+			raise TypeError("Invalid Type")
+		account.transfer(self, amount, self.__merchant_account)
 
 
 # ============================================================================
@@ -868,7 +887,7 @@ class Bank:
 		"""TODO: หา Counter จาก counter_id และ return (หรือ None)"""
 		if not isinstance(counter_id, str):
 			raise TypeError("Invalid Type")
-		for index, item in enumerate(self.__edc_list):
+		for index, item in enumerate(self.__counter_list):
 			counter: Counter = item
 			if counter.counter_id == counter_id:
 				return counter
@@ -933,7 +952,10 @@ class User:
 	
 	def validate_citizen_id(self, input_citizen_id):
 		return input_citizen_id == self.__citizen_id
-
+	
+	@property
+	def name(self):
+		return self.__name
 
 class Transaction:
 	"""รายการทำธุรกรรม
