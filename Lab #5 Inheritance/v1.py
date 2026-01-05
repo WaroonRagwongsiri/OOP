@@ -336,7 +336,10 @@ class Account(ABC):
 		self.__balance -= amount
 		self.card.daily_withdraw_limit -= amount
 		target_account.receive_transfer(amount, channel, self.__acc_id)
-		self._create_transaction("TW", channel.get_channel_type(), channel.get_channel_id(), amount, self.__balance, target_account.account_no)
+		if isinstance(channel, EDC_machine):
+			self._create_transaction("P", channel.get_channel_type(), channel.get_channel_id(), amount, self.__balance, target_account.account_no)
+		else:
+			self._create_transaction("TW", channel.get_channel_type(), channel.get_channel_id(), amount, self.__balance, target_account.account_no)
 	
 	def receive_transfer(self, amount, channel, source_acc_no):
 		"""รับเงินโอน
