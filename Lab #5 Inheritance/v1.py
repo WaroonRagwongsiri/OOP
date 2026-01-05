@@ -231,9 +231,9 @@ class Account(ABC):
 		6. แสดงข้อความสำเร็จ
 		"""
 
-		if not isinstance(channel, Channel) or (not isinstance(amount, int) and not isinstance(amount, float)):
+		if not isinstance(channel, Channel) or not isinstance(amount, (float, int)):
 			raise TypeError("Invalid Type")
-		if isinstance(channel, ATM_machine) or isinstance(channel, EDC_machine):
+		if isinstance(channel, (ATM_machine, EDC_machine)):
 			self._validate_channel_session(channel)
 		if amount <= 0:
 			raise ValueError("Invalid Amount")
@@ -273,24 +273,25 @@ class Account(ABC):
 		12. บันทึก transaction (W และ F ถ้ามี fee)
 		13. แสดงข้อความสำเร็จ
 		"""
-		if not isinstance(channel, Channel) or (not isinstance(amount, int) and not isinstance(amount, float)):
+		if not isinstance(channel, Channel) or not isinstance(amount, (float, int)):
 			raise TypeError("Invalid Type")
-		if isinstance(channel, ATM_machine) or isinstance(channel, EDC_machine):
+		if isinstance(channel, (ATM_machine, EDC_machine)):
 			self._validate_channel_session(channel)
 		if (amount <= 0):
 			raise ValueError("Invalid Amount")
 		self._check_withdraw_limit(amount)
-		if self.__balance < amount + self.card.FEES:
-			raise ValueError("Exceed Balance (Annual Fees)")
+		if self.card != None:
+			if self.__balance < amount + self.card.FEES:
+				raise ValueError("Exceed Balance (Annual Fees)")
 		if isinstance(channel, ATM_machine) and self.__balance - amount - self.card.FEES < self.card.ANNUAL_FEE:
 			raise ValueError("Exceed Balance (Annual Fees)")
-		if isinstance(channel, ATM_machine) or isinstance(channel, EDC_machine):
-			channel.check_daily_limit(amount)
-		if hasattr(channel, 'has_sufficient_cash'):
-			channel.has_sufficient_cash(amount)
+		if isinstance(channel, (ATM_machine, EDC_machine)) and self.card.check_daily_limit(amount) == True:
+			raise ValueError("Exceed Daily Limit")
+		if hasattr(channel, 'has_sufficient_cash') and channel.has_sufficient_cash(amount) == False:
+			raise ValueError("ATM not have enought money")
 		self.__balance -= amount
-		if isinstance(channel, ATM_machine) or isinstance(channel, EDC_machine):
-			self.card.DAILY_WITHDRAW_LIMIT -= amount
+		if isinstance(channel, (ATM_machine, EDC_machine)):
+			self.card.daily_withdraw_limit -= amount
 		if hasattr(channel, 'dispense_cash'):
 			channel.dispense_cash(amount)
 		self._create_transaction('W', channel.get_channel_type(), channel.get_channel_id(), amount, self.__balance)
@@ -320,20 +321,22 @@ class Account(ABC):
 		8. บันทึก transaction (type='TW')
 		9. แสดงข้อความสำเร็จ
 		"""
-		if not isinstance(channel, Channel) or (not isinstance(amount, int) and not isinstance(amount, float) or not isinstance(target_account, Account)):
+		if not isinstance(channel, Channel) or not isinstance(amount, (float, int)) or not isinstance(target_account, Account):
 			raise TypeError("Invalid Type")
-		if isinstance(channel, ATM_machine) or isinstance(channel, EDC_machine):
+		if isinstance(channel, (ATM_machine, EDC_machine)):
 			self._validate_channel_session(channel)
 		if (amount <= 0):
 			raise ValueError("Invalid Amount")
 		if amount > self.__balance:
 			raise ValueError("Exceed Balance")
-		if isinstance(channel, ATM_machine) or isinstance(channel, EDC_machine):
+		if hasattr(channel, 'has_sufficient_cash') and channel.has_sufficient_cash(amount) == False:
+			raise ValueError("ATM not have enought money")
+		if isinstance(channel, (ATM_machine, EDC_machine)):
 			self._check_withdraw_limit(amount)
 		self.__balance -= amount
-		self.__daily_withdrawn -= amount
+		self.card.daily_withdraw_limit -= amount
 		target_account.receive_transfer(amount, channel, self.__acc_id)
-		self._create_transaction("TW", channel.get_channel_type(), channel.get_channel_id(), amount, self.__balance, target_account)
+		self._create_transaction("TW", channel.get_channel_type(), channel.get_channel_id(), amount, self.__balance, target_account.account_no)
 	
 	def receive_transfer(self, amount, channel, source_acc_no):
 		"""รับเงินโอน
@@ -379,9 +382,9 @@ class SavingAccount(Account):
 		3. บันทึก transaction (type='I', channel='SYSTEM', id='AUTO')
 		4. แสดงข้อความและ return interest
 		"""
-		interest = self.__balance * self.INTEREST_RATE
-		self.__balance += interest
-		self._create_transaction("I", "SYSTEM", "AUTO", interest, self.__balance)
+		interest = self._Account__balance * self.INTEREST_RATE
+		self._Account__balance += interest
+		self._create_transaction("I", "SYSTEM", "AUTO", interest, self._Account__balance)
 		return interest
 	
 	def _check_withdraw_limit(self, amount):
@@ -439,9 +442,9 @@ class FixedAccount(Account):
 		rate = self.INTEREST_RATE
 		if self.__is_early_withdrawal == True:
 			rate *= self.EARLY_WITHDRAWAL_PENALTY
-		interest = self.__balance * rate * (self.__term_months / 12)
-		self.__balance += interest
-		self._create_transaction("I", "SYSTEM", "AUTO", interest, self.__balance)
+		interest = self._Account__balance * rate * (self.__term_months / 12)
+		self._Account__balance += interest
+		self._create_transaction("I", "SYSTEM", "AUTO", interest, self._Account__balance)
 		return interest
 	
 	def _check_withdraw_limit(self, amount):
@@ -455,6 +458,14 @@ class FixedAccount(Account):
 			raise TypeError("Invalid Type")
 		if datetime.now() < self.__maturity_date:
 			print("WARNING THERE WILL BE PERNALTY FOR WITHDRAW")
+	
+	@property
+	def term_months(self):
+		return self.__term_months
+	
+	@property
+	def maturity_date(self):
+		return self.__maturity_date
 
 
 class CurrentAccount(Account):
@@ -511,6 +522,7 @@ class Card(ABC):
 		self.__card_no: str = card_no
 		self.__account_no: str = account_no
 		self.__pin: str = pin
+		self.__daily_withdraw: float = self.DAILY_WITHDRAW_LIMIT
 	
 	@property
 	def card_no(self):
@@ -521,6 +533,16 @@ class Card(ABC):
 	def account_no(self):
 		"""TODO: Return associated account number"""
 		return self.__account_no
+
+	@property
+	def daily_withdraw_limit(self):
+		return self.__daily_withdraw
+	
+	@daily_withdraw_limit.setter
+	def	daily_withdraw_limit(self, amount: float):
+		if not isinstance(amount, (float, int)):
+			raise TypeError("TypeError")
+		self.__daily_withdraw = amount
 	
 	def validate_pin(self, pin_input):
 		"""ตรวจสอบ PIN
@@ -547,6 +569,36 @@ class Card(ABC):
 			str: ชื่อประเภทบัตร
 		"""
 		pass
+
+	def check_daily_limit(self, amount: float):
+		print(self.account_no ,amount, self.daily_withdraw_limit)
+		return amount > self.daily_withdraw_limit
+	
+	def reset_daily_limit(self):
+		self.__daily_withdraw = self.DAILY_WITHDRAW_LIMIT
+
+	def charge_annual_fee(self, account):
+		"""หักค่าธรรมเนียมรายปี
+		
+		Args:
+			account: Account object ที่จะหักเงิน
+		
+		Raises:
+			ValueError: ถ้ายอดเงินไม่พอ
+		
+		TODO:
+		1. Check account._Account__amount >= ANNUAL_FEE
+		2. หักเงิน ANNUAL_FEE
+		3. บันทึก transaction (type='F', channel='SYSTEM', id='ANNUAL_FEE')
+		4. แสดงข้อความ
+		"""
+		if not isinstance(account, Account):
+			raise TypeError("Invalid Type")
+		if account.amount < self.ANNUAL_FEE:
+			raise ValueError("Not Enough Money to Pay")
+		account.amount -= self.ANNUAL_FEE
+		account._create_transaction('F', 'SYSTEM', 'ANNUAL_FEE', self.ANNUAL_FEE, account.amount)
+		print("ANNUAL FEES PAYED!")
 
 class ATM_Card(Card):
 	"""บัตร ATM ธรรมดา
@@ -588,21 +640,40 @@ class ATM_Card(Card):
 
 class DebitCard(Card):
 	ANNUAL_FEE = 300
+	CASH_BACK_RATE = 0.1
+
+	def __init__(self, card_no, account_no, pin):
+		super().__init__(card_no, account_no, pin)
+		self.__total_cashback: float = 0
 
 	def get_card_type(self):
 		return "DebitCard"
+	
+	@property
+	def cashback(self):
+		return self.__total_cashback
+	
+	@cashback.setter
+	def cashback(self, amount: float):
+		if not isinstance(amount, (float, int)):
+			raise TypeError("InvalidType")
+		self.__total_cashback = amount
 
 class ShoppingCard(DebitCard):
 	ANNUAL_FEE = 300
-	CASH_BACK = 0.1
+	CASH_BACK_RATE = 0.1
 
 	def get_card_type(self):
 		return "ShoppingCard"
 
 class PremiumCard(DebitCard):
 	ANNUAL_FEE = 500
-	CASH_BACK = 0.2
+	CASH_BACK_RATE = 0.2
 	DAILY_WITHDRAW_LIMIT = 100000
+	
+	def __init__(self, card_no, account_no, pin):
+		super().__init__(card_no, account_no, pin)
+		self.__daily_withdraw = self.DAILY_WITHDRAW_LIMIT
 
 	def get_card_type(self):
 		return "PremiumCard"
@@ -724,9 +795,6 @@ class ATM_machine(Channel):
 		if self.__current_card == card:
 			return True
 		return False
-	
-	def check_daily_limit(self, amount : float):
-		return amount > self.WITHDRAW_LIMIT
 
 class Counter(Channel):
 	def __init__(self, counter_id: str):
@@ -809,7 +877,13 @@ class EDC_machine(Channel):
 	def pay(self, account: Account, amount: float):
 		if not isinstance(account, Account) or (not isinstance(amount, float) and not isinstance(amount, int)):
 			raise TypeError("Invalid Type")
+		if self.is_using(account.card) == False:
+			raise PermissionError("Other is using this EDC")
 		account.transfer(self, amount, self.__merchant_account)
+		if isinstance(account.card, PremiumCard):
+			account.card.cashback += amount * account.card.CASH_BACK_RATE
+		if isinstance(account.card, ShoppingCard) and amount >= 1000:
+			account.card.cashback += amount * account.card.CASH_BACK_RATE
 
 
 # ============================================================================
@@ -997,6 +1071,22 @@ class Transaction:
 			return f"{self.__type}-{self.__channel_type}:{self.__channel_id}-{self.__amount}-{self.__balance}"
 		else:
 			return f"{self.__type}-{self.__channel_type}:{self.__channel_id}-{self.__amount}-{self.__balance}-{self.__target_acc_id}"
+	
+	@property
+	def type(self):
+		return self.__type
+	
+	@property
+	def amount(self):
+		return self.__amount
+
+	@property
+	def channel_type(self):
+		return self.__channel_type
+
+	@property
+	def channel_id(self):
+		return self.__channel_id
 
 #################################################################################
 # TEST SETUP & EXECUTION
