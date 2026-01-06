@@ -99,6 +99,7 @@ class Card
 	- pin : String
 	- ANNUAL_FEE : Float
 	- DAILY_WITHDRAW_LIMIT : Float
+	- daily_withdrawal
 	- FEES : Float
 	+ validate_pin(pin : String) -> Bool
 	+ get_card_type() -> String

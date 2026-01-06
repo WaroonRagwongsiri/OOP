@@ -442,6 +442,8 @@ class FixedAccount(Account):
 		5. บันทึก transaction
 		6. แสดงข้อความและ return interest
 		"""
+		if not isinstance(early_withdrawal, bool):
+			raise TypeError("Invalid Type")
 		rate = self.INTEREST_RATE
 		if self.__is_early_withdrawal == True:
 			rate *= self.EARLY_WITHDRAWAL_PENALTY
@@ -575,7 +577,6 @@ class Card(ABC):
 		pass
 
 	def check_daily_limit(self, amount: float):
-		print(self.account_no ,amount, self.daily_withdraw_limit)
 		return amount > self.daily_withdraw_limit
 	
 	def reset_daily_limit(self):
@@ -893,6 +894,7 @@ class EDC_machine(Channel):
 			raise TypeError("Invalid Type")
 		if self.is_using(account.card) == False:
 			raise PermissionError("Other is using this EDC")
+		self.check_daily_limit(amount)
 		account.transfer(self, amount, self.__merchant_account)
 		if isinstance(account.card, PremiumCard):
 			account.card.cashback += amount * account.card.CASHBACK_RATE
