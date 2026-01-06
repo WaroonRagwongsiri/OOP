@@ -838,6 +838,7 @@ class EDC_machine(Channel):
 		self.__edc_id: str = edc_id
 		self.__merchant_account: CurrentAccount = merchant_account
 		self.__current_card: Card = None
+		self.__daily_limit: float = self.DAILY_LIMIT
 
 	@property
 	def edc_id(self) -> str:
@@ -878,6 +879,15 @@ class EDC_machine(Channel):
 		"""TODO: ตั้ง current_card = None"""
 		self.__current_card = None
 
+	def check_daily_limit(self, amount: float):
+		if not isinstance(amount, (float, int)):
+			raise TypeError("TypeError")
+		if amount > self.__daily_limit:
+			raise ValueError("Exceed EDC Daily Limit")
+	
+	def reset_daily_limit(self):
+		self.__daily_limit = self.DAILY_LIMIT
+
 	def pay(self, account: Account, amount: float):
 		if not isinstance(account, Account) or (not isinstance(amount, float) and not isinstance(amount, int)):
 			raise TypeError("Invalid Type")
@@ -888,6 +898,7 @@ class EDC_machine(Channel):
 			account.card.cashback += amount * account.card.CASHBACK_RATE
 		if isinstance(account.card, ShoppingCard) and amount >= 1000:
 			account.card.cashback += amount * account.card.CASHBACK_RATE
+		self.__daily_limit -= amount
 
 
 # ============================================================================
