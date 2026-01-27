@@ -1,0 +1,263 @@
+@startuml OOP
+
+' =========================
+' Platform Root (GamePlatform)
+' =========================
+class GamePlatform {
+	+storeId: String
+	+name: String
+	+user_list: List<User>
+	+game_list: List<Game>
+	+transaction_list: List<Transaction>
+	+license_list: List<GameLicense>
+}
+
+' =========================
+' Accounts & Roles (Inheritance)
+' =========================
+abstract class User {
+	+id: String
+	+display_name: String
+	+email: String
+	+verified_status: String
+	+country: String
+	+created_at: DateTime
+	+account_status: String  ' Active/Suspended/Closed
+}
+
+class Customer {
+	+wallet_balance: double
+	+refund_count_30d: int
+	+friends: List<User>
+	+wishlist: List<Game>
+}
+
+class Subscriber {
+	+member_tier: String
+	+expires_at: DateTime
+	+extra_discount_rate: double
+}
+
+class Publisher {
+	+company_name: String
+	+kyc_status: String
+	+contact_email: String
+}
+
+abstract class Staff {
+	+employee_id: String
+	+permission_level: String
+}
+
+class Moderator {
+	+review_queue_count: int
+}
+
+class Admin {
+	+system_policy_version: String
+}
+
+' =========================
+' Catalog / Products
+' =========================
+class Game {
+	+id: String              ' ex: G-YYYY-XXXX
+	+name: String
+	+description: String
+	+image: String
+	+base_price: double
+	+currency: String
+	+status: String          ' Draft/UnderReview/Published/Suspended/Delisted
+	+age_rating: String
+	+published_at: DateTime
+	+sold_count: int         ' <-- track how many copies sold
+}
+
+class DLC {
+	+dlc_id: String
+	+game_id: String
+	+name: String
+	+price: double
+}
+
+class Achievement {
+	+achievement_id: String
+	+game_id: String
+	+name: String
+	+image: String
+	+rarity: String
+}
+
+class Review {
+	+id: String              ' ex: R-YYMM-XXXXXX
+	+game_id: String
+	+user_id: String
+	+recommend: bool
+	+content: String
+	+status: String          ' Visible/AutoHidden/PendingModeration/Hidden/Removed
+	+created_at: DateTime
+}
+
+class ReviewReport {
+	+report_id: String
+	+review_id: String
+	+reason: String
+	+reported_at: DateTime
+}
+
+' =========================
+' Cart
+' =========================
+class Cart {
+	+cart_id: String
+	+total_amount_estimate: double
+	+updated_at: DateTime
+}
+
+class CartItems {
+	+game_id: String
+	+quantity: int
+	+unit_price_estimate: double
+}
+
+' =========================
+' Transaction / Order (price snapshot + status table)
+' =========================
+class Transaction {
+	+id: String              ' ex: O-YYYYMMDD-XXXX
+	+user_id: String
+	+status: String          ' PendingPayment/Processing/Completed/Failed/Cancelled
+	+created_at: DateTime
+	+locked_until: DateTime  ' 15-min rule
+	+price_snapshot_hash: String
+
+	+sub_total: double
+	+discount_total: double
+	+vat_total: double
+	+fee_total: double
+	+total_price: double
+
+	+payment_provider_ref: String
+	+paid_at: DateTime
+}
+
+class TracsactionItem {
+	+game_id: String
+	+quantity: int
+	+unit_price_locked: double
+	+final_price: double
+}
+
+' =========================
+' Payment (Abstract)
+' =========================
+abstract class PaymentMethod {
+	+method_id: String
+	+masked_info: String
+	+status: String  ' Active/Expired/Blocked
+}
+
+class CardPayment {
+	+brand: String
+	+token_ref: String
+}
+
+class BankTransferQrPayment {
+	+bank_name: String
+	+qr_ref: String
+}
+
+class WalletPayment {
+	+wallet_ref: String
+}
+
+' =========================
+' Copy / License (THIS is the "copy" your professor means)
+' =========================
+class GameLicense {
+	+license_id: String        ' ex: L-YYMM-XXXXXX
+	+game_id: String
+	+owner_user_id: String
+	+source_transaction_id: String
+	+ownership_status: String  ' Active/Suspended/Revoked
+	+playtime_hours: double
+	+granted_at: DateTime
+}
+
+' =========================
+' Discounts / Entitlements
+' =========================
+abstract class DiscountBenefit {
+	+benefit_id: String
+	+status: String  ' Available/Reserved/Consumed/Expired
+}
+
+class CouponBenefit {
+	+code: String
+	+percent_off: double
+	+min_spend: double
+	+expires_at: DateTime
+}
+
+class CreditBenefit {
+	+credit_amount: double
+	+source: String  ' topup/refund/compensation
+}
+
+' =========================
+' Refund
+' =========================
+class RefundRequest {
+	+refund_id: String
+	+transaction_id: String
+	+requested_at: DateTime
+	+status: String   ' Requested/UnderReview/Approved/Rejected/Refunded
+	+reason: String
+}
+
+' =========================================================
+' Relationships
+' =========================================================
+GamePlatform o-- User
+GamePlatform o-- Game
+GamePlatform o-- Transaction
+GamePlatform o-- GameLicense
+
+User <|-- Customer
+Customer <|-- Subscriber
+User <|-- Publisher
+User <|-- Staff
+Staff <|-- Moderator
+Staff <|-- Admin
+
+PaymentMethod <|-- CardPayment
+PaymentMethod <|-- BankTransferQrPayment
+PaymentMethod <|-- WalletPayment
+
+DiscountBenefit <|-- CouponBenefit
+DiscountBenefit <|-- CreditBenefit
+
+Customer o-- Cart
+Customer o-- Transaction
+Customer o-- GameLicense : owns >
+
+Cart o-- CartItems
+Transaction o-- TracsactionItem
+
+Game o-- Review
+Game o-- Achievement
+Game o-- DLC
+
+Publisher -- Game : publishes >
+Review o-- ReviewReport
+Moderator -- Review : moderates >
+
+Transaction --> PaymentMethod : uses >
+Customer o-- PaymentMethod : saved_methods
+Transaction o-- RefundRequest
+Transaction --> DiscountBenefit : applied_benefit >
+
+' Core "purchase gives copy" link
+Transaction --> "0..*" GameLicense : grants >
+
+@enduml
