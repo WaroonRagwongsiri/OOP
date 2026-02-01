@@ -1,0 +1,91 @@
+@startuml UseCaseDiagram
+
+' =========================
+' Actors (จาก hierarchy ใน Class Diagram)
+' =========================
+actor "Customer" as A_Customer
+actor "Subscriber" as A_Subscriber
+actor "Publisher" as A_Publisher
+actor "Moderator" as A_Moderator
+actor "Admin" as A_Admin
+
+A_Customer <|-- A_Subscriber
+
+rectangle "GamePlatform" {
+	'Customer'
+	usecase "AddGameToCart" as UC_AddGameToCart
+	usecase "ViewCart" as UC_ViewCart
+	usecase "RemoveItemFromCart" as UC_RemoveItemFromCart
+	usecase "ViewLibrary" as UC_ViewLibrary
+	usecase "ViewStore" as UC_ViewStore
+	usecase "ViewGameDetail" as UC_ViewGameDetail
+	usecase "WriteReview" as UC_WriteReview
+
+	'BuyGame'
+	usecase "Purchase" as UC_Purchase
+	usecase "StartPayment" as UC_StartPayment
+
+	'Publisher'
+	usecase "PublishGame" as UC_PublishGame
+	usecase "ViewPublishedGame" as UC_ViewPublishedGame
+	usecase "ViewPublishedGameDetail" as UC_ViewPublishedGameDetail
+	usecase "RemoveGame" as UC_RemoveGame
+
+	'Moderator'
+	usecase "ViewReportedReview" as UC_ViewReportedReview
+	usecase "RemoveReview" as UC_RemoveReview
+
+	'Admin'
+	usecase "ViewPendingGame" as UC_ViewPendingGame
+	usecase "ApproveGame" as UC_ApproveGame
+	usecase "RejectGame" as UC_RejectGame
+	usecase "ViewReportedGame" as UC_ViewReportedGame
+	usecase "RevokeGame" as UC_RevokeGame
+	usecase "ViewAppealMail" as UC_ViewAppealMail
+	usecase "ApproveAppeal" as UC_ApproveAppeal
+	usecase "RejectAppeal" as UC_RejectAppeal
+}
+
+'Customer'
+A_Customer --> UC_ViewCart
+A_Customer --> UC_ViewLibrary
+A_Customer --> UC_ViewStore
+
+UC_ViewStore <.. UC_AddGameToCart : <<extend>>
+UC_ViewStore <.. UC_ViewGameDetail : <<extend>>
+
+UC_ViewLibrary <.. UC_ViewGameDetail : <<extend>>
+
+UC_ViewGameDetail <.. UC_WriteReview : <<extend>>
+
+UC_ViewCart <.. UC_RemoveItemFromCart : <<extend>>
+UC_ViewCart <.. UC_Purchase : <<extend>>
+
+UC_Purchase ..> UC_StartPayment : <<include>>
+
+'Publisher'
+A_Publisher --> UC_PublishGame
+A_Publisher --> UC_ViewPublishedGame
+
+UC_ViewPublishedGame <.. UC_RemoveGame : <<extend>>
+UC_ViewPublishedGame <.. UC_ViewPublishedGameDetail : <<extend>>
+
+'Moderator'
+A_Moderator --> UC_ViewReportedReview
+
+UC_ViewReportedReview <.. UC_RemoveReview : <<extend>>
+
+'Admin'
+A_Admin --> UC_ViewReportedGame
+A_Admin --> UC_ViewAppealMail
+A_Admin --> UC_ViewPendingGame
+
+UC_ViewReportedGame <.. UC_RevokeGame : <<extend>>
+
+UC_ViewAppealMail <.. UC_ApproveAppeal : <<extend>>
+UC_ViewAppealMail <.. UC_RejectAppeal : <<extend>>
+
+UC_ViewPendingGame <.. UC_ApproveGame : <<extend>>
+UC_ViewPendingGame <.. UC_RejectGame : <<extend>>
+
+@enduml
