@@ -6,36 +6,49 @@
 actor "Customer" as A_Customer
 actor "Subscriber" as A_Subscriber
 actor "Publisher" as A_Publisher
-actor "Moderator" as A_Moderator
-actor "Admin" as A_Admin
+actor "Staff" as A_Staff
+actor "Manager" as A_Manager
 
 A_Customer <|-- A_Subscriber
+A_Staff <|-- A_Manager
 
-rectangle "GamePlatform" {
+rectangle "GameStore" {
 	'Customer'
 	usecase "AddGameToCart" as UC_AddGameToCart
 	usecase "ViewCart" as UC_ViewCart
 	usecase "RemoveItemFromCart" as UC_RemoveItemFromCart
-	usecase "ViewLibrary" as UC_ViewLibrary
 	usecase "ViewStore" as UC_ViewStore
 	usecase "ViewGameDetail" as UC_ViewGameDetail
-	usecase "WriteReview" as UC_WriteReview
-
-	'BuyGame'
 	usecase "Purchase" as UC_Purchase
+	usecase "UseCoupon" as UC_UseCoupon
+
+	'Payment'
 	usecase "StartPayment" as UC_StartPayment
+	usecase "PayViaCard" as UC_PayViaCard
+	usecase "PayViaCash" as UC_PayViaCash
+	usecase "PayViaQR" as UC_PayViaQR
+
+	'Subscriber'
+	usecase "ApplyMemberBenefit" as UC_ApplyMemberBenefit
+	usecase "VerifyMember" as UC_VerifyMember
+	usecase "Unsubscribe" as UC_Unsubscribe
 
 	'Publisher'
 	usecase "PublishGame" as UC_PublishGame
 	usecase "ViewPublishedGame" as UC_ViewPublishedGame
 	usecase "ViewPublishedGameDetail" as UC_ViewPublishedGameDetail
 	usecase "RemoveGame" as UC_RemoveGame
+	usecase "FileAppeal" as UC_FileAppeal
+	usecase "ViewOrder" as UC_ViewOrder
+	usecase "ApproveOrder" as UC_ApproveOrder
+	usecase "RejectOrder" as UC_RejectOrder
 
-	'Moderator'
-	usecase "ViewReportedReview" as UC_ViewReportedReview
-	usecase "RemoveReview" as UC_RemoveReview
+	'Staff'
+	usecase "Checkout" as UC_Checkout
+	usecase "ApplyDiscount" as UC_ApplyDiscount
+	usecase "CreateMember" as UC_CreateMember
 
-	'Admin'
+	'Manager'
 	usecase "ViewPendingGame" as UC_ViewPendingGame
 	usecase "ApproveGame" as UC_ApproveGame
 	usecase "RejectGame" as UC_RejectGame
@@ -44,41 +57,63 @@ rectangle "GamePlatform" {
 	usecase "ViewAppealMail" as UC_ViewAppealMail
 	usecase "ApproveAppeal" as UC_ApproveAppeal
 	usecase "RejectAppeal" as UC_RejectAppeal
+	usecase "RefillShelf" as UC_RefillShelf
+	usecase "CreateCoupon" as UC_CreateCoupon
+	usecase "OrderGame" as UC_OrderGame
 }
 
 'Customer'
 A_Customer --> UC_ViewCart
-A_Customer --> UC_ViewLibrary
 A_Customer --> UC_ViewStore
+A_Customer --> UC_Purchase
 
 UC_ViewStore <.. UC_AddGameToCart : <<extend>>
 UC_ViewStore <.. UC_ViewGameDetail : <<extend>>
 
-UC_ViewLibrary <.. UC_ViewGameDetail : <<extend>>
-
-UC_ViewGameDetail <.. UC_WriteReview : <<extend>>
+UC_ViewGameDetail <.. UC_AddGameToCart : <<extend>>
 
 UC_ViewCart <.. UC_RemoveItemFromCart : <<extend>>
-UC_ViewCart <.. UC_Purchase : <<extend>>
 
+UC_Purchase <.. UC_UseCoupon : <<extend>>
 UC_Purchase ..> UC_StartPayment : <<include>>
+
+
+'Payment'
+UC_StartPayment <|-- UC_PayViaCash
+UC_StartPayment <|-- UC_PayViaCard
+UC_StartPayment <|-- UC_PayViaQR
+
+'Subscriber'
+A_Subscriber --> UC_ApplyMemberBenefit
+A_Subscriber --> UC_Unsubscribe
+
+UC_ApplyMemberBenefit ..> UC_VerifyMember : <<include>>
 
 'Publisher'
 A_Publisher --> UC_PublishGame
 A_Publisher --> UC_ViewPublishedGame
+A_Publisher --> UC_ViewOrder
+
+UC_ViewOrder <.. UC_ApproveOrder : <<extend>>
+UC_ViewOrder <.. UC_RejectOrder : <<extend>>
 
 UC_ViewPublishedGame <.. UC_RemoveGame : <<extend>>
 UC_ViewPublishedGame <.. UC_ViewPublishedGameDetail : <<extend>>
+UC_ViewPublishedGame <.. UC_FileAppeal : <<extend>>
 
-'Moderator'
-A_Moderator --> UC_ViewReportedReview
+'Staff'
+A_Staff --> UC_Checkout
+A_Staff --> UC_RefillShelf
+A_Staff --> UC_CreateMember
 
-UC_ViewReportedReview <.. UC_RemoveReview : <<extend>>
+UC_Checkout <.. UC_ApplyDiscount : <<extend>>
 
-'Admin'
-A_Admin --> UC_ViewReportedGame
-A_Admin --> UC_ViewAppealMail
-A_Admin --> UC_ViewPendingGame
+'Manager'
+A_Manager --> UC_ViewReportedGame
+A_Manager --> UC_ViewAppealMail
+A_Manager --> UC_ViewPendingGame
+A_Manager --> UC_CreateCoupon
+A_Manager --> UC_OrderGame
 
 UC_ViewReportedGame <.. UC_RevokeGame : <<extend>>
 
@@ -87,5 +122,6 @@ UC_ViewAppealMail <.. UC_RejectAppeal : <<extend>>
 
 UC_ViewPendingGame <.. UC_ApproveGame : <<extend>>
 UC_ViewPendingGame <.. UC_RejectGame : <<extend>>
+
 
 @enduml

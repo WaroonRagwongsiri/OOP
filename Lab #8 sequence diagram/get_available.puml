@@ -1,0 +1,30 @@
+@startuml GetAvailableSequenceDiagram
+
+Customer -> GameStore : Get available Room
+activate Customer
+activate GameStore
+
+alt Have available rooms
+
+	GameStore -> Room : Get available Room
+	activate Room
+
+	loop
+		Room -> Room : is_available()
+	end
+
+	Room -> GameStore : All available rooms
+	deactivate Room
+
+	GameStore -> Customer : All available rooms
+
+else No available rooms
+
+	Room -> GameStore : No available rooms
+	GameStore -> Customer : No available rooms
+	deactivate GameStore
+	deactivate Customer
+
+end
+
+@enduml

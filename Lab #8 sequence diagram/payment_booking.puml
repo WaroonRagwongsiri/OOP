@@ -1,0 +1,51 @@
+@startuml PaymentBookingSequenceDiagram
+
+Customer -> GameStore : Start Payment
+activate Customer
+activate GameStore
+
+alt payment success
+
+	GameStore -> Payment : Start Payment
+	activate Payment
+	Payment -> GameStore : Success
+	deactivate Payment
+
+	GameStore -> Reservation : Update Reservation (Set status Paid)
+	activate Reservation
+	Reservation -> Reservation : status = Paid
+	Reservation -> GameStore : Updated
+	deactivate Reservation
+
+	GameStore -> Transaction : Update Transaction (Set status Success)
+	activate Transaction
+	Transaction -> Transaction : status = Success
+	Transaction -> GameStore : Updated
+	deactivate Transaction
+
+	GameStore -> Customer : Success
+
+else payment fail
+
+	Payment -> GameStore : Fail
+
+	GameStore -> Reservation : Update Reservation (Set status Cancel)
+	activate Reservation
+	Reservation -> Reservation : status = Cancel
+	Reservation -> GameStore : Updated
+	deactivate Reservation
+
+	GameStore -> Transaction : Update Transaction (Set status Fail)
+	activate Transaction
+	Transaction -> Transaction : status = Success
+	Transaction -> GameStore : Updated
+	deactivate Transaction
+
+	GameStore -> Customer : Fail
+
+	deactivate GameStore
+	deactivate Customer
+
+end
+
+@enduml
