@@ -38,14 +38,17 @@ class GameStore:
 		self.__room_list.append(new_room)
 		return new_room
 
-	def get_available_room(self) -> list[str]:
+	def get_available_room(self) -> list['Room']:
 		available_rooms = []
 
 		for room in self.__room_list:
 			if room.status == RoomStatusEnum.AVAILABLE:
-				available_rooms.append(room.id)
+				available_rooms.append(room)
 		
 		return available_rooms
+	
+	def get_all_customer(self) -> list[Customer]:
+		return self.__customer_list
 	
 	def get_customer_by_id(self, customer_id: str) -> Customer:
 		for customer in self.__customer_list:
@@ -125,6 +128,11 @@ class Reservation:
 		self.__status = status
 
 	status = property(fget=get_status, fset=set_status)
+
+	def get_id(self):
+		return self.__id
+	
+	id = property(fget=get_id)
 
 class TransactionTypeEnum(Enum):
 	BUY = 0
