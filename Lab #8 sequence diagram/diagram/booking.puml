@@ -1,6 +1,6 @@
 @startuml UsecaseSequenceDiagram
 
-Customer -> GameStore : Create booking (Room ID)
+Customer -> GameStore : Create booking (roomId)
 activate Customer
 activate GameStore
 

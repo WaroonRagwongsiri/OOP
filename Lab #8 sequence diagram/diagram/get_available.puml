@@ -13,10 +13,10 @@ alt Have available rooms
 		Room -> Room : is_available()
 	end
 
-	Room -> GameStore : All available rooms
+	Room -> GameStore : All available RoomId
 	deactivate Room
 
-	GameStore -> Customer : All available rooms
+	GameStore -> Customer : All available RoomId
 
 else No available rooms
 
