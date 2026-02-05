@@ -1,8 +1,10 @@
+from datetime import datetime
 from enum import Enum
 
 class Customer:
-	def __init__(self, customer_id: str, name: str, age: int):
-		self.__customer_id: str = customer_id
+	def __init__(self, name: str, age: int):
+		# [C]-[Timestamp]-[Name]-[Age]
+		self.__customer_id: str = f"[C]-[{datetime.now().isoformat()}]-[{name}]-[{age}]"
 		self.__name: str = name
 		self.__age: int = age
 		self.__reservation: Reservation = None
@@ -17,35 +19,29 @@ class Customer:
 		self.__reservation = reservation
 
 	reservation = property(fget=get_reservation, fset=set_reservation)
-
 	id = property(fget=get_customer_id)
 
 class GameStore:
-	def __init__(self, store_id: str, store_name: str):
-		self.__store_id: str = store_id
+	def __init__(self, store_name: str):
+		# [S]-[Timestamp]-[StoreName]
+		self.__store_id: str = f"[S]-[{datetime.now().isoformat()}]-[{store_name}]"
 		self.__store_name: str = store_name
 		self.__customer_list: list[Customer] = []
 		self.__room_list: list[Room] = []
 		self.__transaction_list: list[Transaction] = []
 	
-	def create_customer(self, customer_id:str, name: str, age: int) -> Customer:
-		new_customer: Customer = Customer(customer_id, name, age)
+	def create_customer(self, name: str, age: int) -> Customer:
+		new_customer = Customer(name, age)
 		self.__customer_list.append(new_customer)
 		return new_customer
 	
-	def create_room(self, room_id: str, max_customer: int, rate_price: float) -> 'Room':
-		new_room = Room(room_id, max_customer, rate_price)
+	def create_room(self, max_customer: int, rate_price: float) -> 'Room':
+		new_room = Room(max_customer, rate_price)
 		self.__room_list.append(new_room)
 		return new_room
 
 	def get_available_room(self) -> list['Room']:
-		available_rooms = []
-
-		for room in self.__room_list:
-			if room.status == RoomStatusEnum.AVAILABLE:
-				available_rooms.append(room)
-		
-		return available_rooms
+		return [room for room in self.__room_list if room.status == RoomStatusEnum.AVAILABLE]
 	
 	def get_all_customer(self) -> list[Customer]:
 		return self.__customer_list
@@ -62,64 +58,76 @@ class GameStore:
 				return room
 		return None
 	
-	def create_transaction(self, transaction_id:str, customer: Customer, type: int) -> 'Transaction':
-		new_transaction = Transaction(transaction_id, customer, type)
+	def create_transaction(self, customer: Customer, type: 'TransactionTypeEnum') -> 'Transaction':
+		new_transaction = Transaction(customer, type)
 		self.__transaction_list.append(new_transaction)
 		return new_transaction
 
 	def create_booking(self, custome_id: str, room_id: str) -> str:
 		customer = self.get_customer_by_id(custome_id)
-		if customer == None:
+		if customer is None:
 			raise ValueError("Invalid User")
+
 		room = self.get_room_by_id(room_id)
-		if room == None:
+		if room is None:
 			raise ValueError("No Room this ID")
-		reservation = room.create_reservation('Reservation-OK', customer)
-		if reservation == None:
-			raise ValueError("Fail to create Reservation")
-		self.create_transaction('RE-00', customer, TransactionTypeEnum.RENT)
+
+		reservation = room.create_reservation(customer)
+		self.create_transaction(customer, TransactionTypeEnum.RENT)
 		customer.reservation = reservation
 		return "Success"
 
 class RoomStatusEnum(Enum):
-	AVAILABLE = 0
-	BEING_USE = 1
-	UNDER_MAINTAINACE = 2
+	AVAILABLE = "Available"
+	BEING_USE = "BeingUse"
+	RESERVED = "Reserved"
+	UNDER_MAINTAINACE = "UnderMaintainace"
+
+class RoomTypeEnum(Enum):
+	NORMAL = "Normal"
+	VIP = "VIP"
+
 
 class Room:
-	def __init__(self, room_id: str, max_customer: int, rate_price: float):
-		self.__room_id: str = room_id
+	def __init__(self, max_customer: int, rate_price: float):
+		# [RO]-[Timestamp]-[RoomType]
+		self.__room_id: str = f"[RO]-[{datetime.now().isoformat()}]-[{RoomTypeEnum.NORMAL.value}]"
 		self.__max_customer: int = max_customer
 		self.__rate_price: float = rate_price
+		self.__room_type: RoomTypeEnum = RoomTypeEnum.NORMAL
 		self.__status: RoomStatusEnum = RoomStatusEnum.AVAILABLE
-		self.__reservation: list[Reservation] = []
+		self.__reservation: Reservation = None
 
 	def get_room_id(self) -> str:
 		return self.__room_id
 
 	id = property(fget=get_room_id)
 	
-	def get_status(self) -> int:
+	def get_status(self) -> RoomStatusEnum:
 		return self.__status
 
 	status = property(fget=get_status)
 
-	def create_reservation(self, reservation_id: str, customer: Customer) -> 'Reservation':
-		new_reservation = Reservation(reservation_id, customer, self)
-		self.__reservation.append(new_reservation)
+	def create_reservation(self, customer: Customer) -> 'Reservation':
+		new_reservation = Reservation(customer, self)
+		self.__reservation = new_reservation
+		self.__status = RoomStatusEnum.RESERVED
 		return new_reservation
+
 
 class ReservationStatusEnum(Enum):
 	PENDING = "Pending"
 	SUCCESS = "Success"
 	CANCEL = "CANCEL"
 
+
 class Reservation:
-	def __init__(self, reservation_id: str, customer: Customer, room: Room):
-		self.__id: str = reservation_id
+	def __init__(self, customer: Customer, room: Room):
+		# [RE]-[Timestamp]-[CustomerID]-[RoomID]
+		self.__id: str = f"[RE]-[{datetime.now().isoformat()}]-[{customer.id}]-[{room.id}]"
 		self.__customer: Customer = customer
 		self.__room: Room = room
-		self.__status: int = ReservationStatusEnum.PENDING
+		self.__status: ReservationStatusEnum = ReservationStatusEnum.PENDING
 
 	def get_status(self):
 		return self.__status
@@ -134,18 +142,20 @@ class Reservation:
 	
 	id = property(fget=get_id)
 
+
 class TransactionTypeEnum(Enum):
-	BUY = 0
-	RENT = 1
+	BUY = "B"
+	RENT = "R"
 
 class TransactionStatusEnum(Enum):
-	PENDING = 0
-	CANCEL = 1
-	SUCCESS = 2
+	PENDING = "Pending"
+	CANCEL = "Canel"
+	SUCCESS = "Success"
 
 class Transaction:
-	def __init__(self, transaction_id: str, customer: Customer, type: TransactionStatusEnum):
-		self.__transaction_id: str = transaction_id
-		self.__type: TransactionStatusEnum = type
+	def __init__(self, customer: Customer, type: TransactionTypeEnum):
+		# [T]-[Type]-[Timestamp]-[CustomerID]
+		self.__transaction_id: str = f"[T]-[{type.value}]-[{datetime.now().isoformat()}]-[{customer.id}]"
+		self.__type: TransactionTypeEnum = type
 		self.__customer: Customer = customer
 		self.__status: TransactionStatusEnum = TransactionStatusEnum.PENDING
