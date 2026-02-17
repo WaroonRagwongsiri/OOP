@@ -1,12 +1,34 @@
 @startuml UsecaseSequenceDiagram
 
-actor Customer
+actor Customer as A_Customer
 
-Customer -> GameStore : Create booking (roomId)
-activate Customer
+participant GameStore
+participant Customer as P_Customer
+participant Room
+participant Reservation
+participant Logs
+
+A_Customer -> GameStore : Create booking (customerId, roomId, start_time, end_time)
+activate A_Customer
 activate GameStore
 
 alt booking success
+
+	loop get customer by id
+
+		GameStore -> P_Customer: Get customer
+		activate P_Customer
+
+		P_Customer -> GameStore : Customer
+		deactivate P_Customer
+
+	end
+
+	GameStore -> P_Customer : check_time_availability(start_time, end_time)
+	activate P_Customer
+
+	P_Customer -> GameStore : Success
+	deactivate P_Customer
 
 	loop get room by id
 
@@ -21,14 +43,19 @@ alt booking success
 	GameStore -> Room : Set booking
 	activate Room
 
-	Room -> Reservation : Create Reservation(customer, room, room_type)
+	Room -> Reservation : Create Reservation(customer)
 	activate Reservation
 	Reservation -> Reservation : status = Pending
-	Reservation -> Room : Created(reservation_id)
+	Reservation -> Room : Reservation
 	deactivate Reservation
 
 	Room -> GameStore : Reservation
 	deactivate Room
+
+	GameStore -> P_Customer : addReservation(reservation)
+	activate P_Customer
+	P_Customer -> GameStore : Success
+	deactivate P_Customer
 
 	GameStore -> Logs : Create Logs(customer, reservation)
 	activate Logs
@@ -36,20 +63,32 @@ alt booking success
 	Logs -> GameStore : Logs
 	deactivate Logs
 
-	GameStore -> Customer : Success
+	GameStore -> A_Customer : Success
+
+else booking fail (fail customer invalid time frame)
+
+	P_Customer -> GameStore : Fail (fail customer invalid time frame)
+	
+	GameStore -> A_Customer : Fail (fail customer invalid time frame)
 
 else booking fail (fail to get rooms)
 
 	Room -> GameStore : Fail (fail to get rooms)
-	GameStore -> Customer : Fail (fail to get rooms)
+	GameStore -> A_Customer : Fail (fail to get rooms)
 
-else booking fail (fail to create reservation)
+else booking fail (fail to create reservation room invalid time frame)
 
-	Room -> GameStore : Fail (fail to create reservation)
-	GameStore -> Customer : Fail (fail to create reservation)
+	Room -> GameStore : Fail (fail to create reservation room invalid time frame)
+	GameStore -> A_Customer : Fail (fail to create reservation room invalid time frame)
+
+else booking fail (fail to add reservation)
+
+	P_Customer -> GameStore : Fail (fail to add reservation)
+
+	GameStore -> A_Customer : Fail (fail to add reservation)
 
 	deactivate GameStore
-	deactivate Customer
+	deactivate A_Customer
 
 end
 

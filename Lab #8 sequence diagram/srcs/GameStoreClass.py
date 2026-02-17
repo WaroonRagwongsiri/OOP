@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from enum import Enum
 import uuid
 
@@ -14,19 +15,31 @@ class Customer:
 		self.__customer_id: str = customer_id
 		self.__name: str = name
 		self.__age: int = age
-		self.__reservation: Reservation | None = None
+		self.__reservation_list: list[Reservation] = []
 
 	def get_customer_id(self):
 		return self.__customer_id
 
-	def get_reservation(self):
-		return self.__reservation
+	def get_reservation_list(self):
+		return self.__reservation_list
 
-	def set_reservation(self, reservation: "Reservation"):
-		self.__reservation = reservation
+	def add_reservation(self, reservation: "Reservation"):
+		self.__reservation_list.append(reservation)
 
-	reservation = property(fget=get_reservation, fset=set_reservation)
+	reservation_list = property(fget=get_reservation_list)
 	id = property(fget=get_customer_id)
+
+	def check_time_availability(self, start_time: datetime, end_time: datetime) -> bool:
+		for reservation in self.__reservation_list:
+			if start_time < reservation.end_time and end_time > reservation.start_time:
+				return False
+		return True
+
+	def get_reservation_from_id(self, reservation_id: str) -> Reservation:
+		for reservation in self.__reservation_list:
+			if reservation.id == reservation_id:
+				return reservation
+		return None
 
 
 class RoomStatusEnum(Enum):
@@ -48,7 +61,7 @@ class Room:
 		self.__rate_price: float = rate_price
 		self.__room_type: RoomTypeEnum = RoomTypeEnum.NORMAL
 		self.__status: RoomStatusEnum = RoomStatusEnum.AVAILABLE
-		self.__reservation: Reservation | None = None
+		self.__reservation_list: list[Reservation] = []
 
 	def get_room_id(self) -> str:
 		return self.__room_id
@@ -60,11 +73,18 @@ class Room:
 
 	status = property(fget=get_status)
 
-	def create_reservation(self, reservation_id: str, customer: Customer) -> "Reservation":
-		new_reservation = Reservation(reservation_id, customer, self)
-		self.__reservation = new_reservation
-		self.__status = RoomStatusEnum.RESERVED
+	def create_reservation(self, reservation_id: str, customer: Customer, start_time: datetime, end_time: datetime) -> "Reservation":
+		if self.check_time_availability(start_time, end_time) == False:
+			return None
+		new_reservation = Reservation(reservation_id, customer, self, start_time, end_time)
+		self.__reservation_list.append(new_reservation)
 		return new_reservation
+
+	def check_time_availability(self, start_time: datetime, end_time: datetime) -> bool:
+		for reservation in self.__reservation_list:
+			if start_time < reservation.end_time and end_time > reservation.start_time:
+				return False
+		return True
 
 
 class ReservationStatusEnum(Enum):
@@ -74,11 +94,13 @@ class ReservationStatusEnum(Enum):
 
 
 class Reservation:
-	def __init__(self, reservation_id: str, customer: Customer, room: Room):
+	def __init__(self, reservation_id: str, customer: Customer, room: Room, start_time: datetime, end_time: datetime):
 		self.__id: str = reservation_id
 		self.__customer: Customer = customer
 		self.__room: Room = room
 		self.__status: ReservationStatusEnum = ReservationStatusEnum.PENDING
+		self.__start_time: datetime = start_time
+		self.__end_time: datetime = end_time
 
 	def get_status(self):
 		return self.__status
@@ -92,6 +114,15 @@ class Reservation:
 		return self.__id
 
 	id = property(fget=get_id)
+
+	def get_start_time(self):
+		return self.__start_time
+
+	def get_end_time(self):
+		return self.__end_time
+	
+	start_time = property(get_start_time)
+	end_time = property(get_end_time)
 
 class Logs:
 	def __init__(self, transaction_id: str):
@@ -112,7 +143,7 @@ class GameStore:
 		self.__store_name: str = store_name
 		self.__customer_list: list[Customer] = []
 		self.__room_list: list[Room] = []
-		self.__customer_logs_list: list[Transaction] = []
+		self.__customer_logs_list: list[CustomerLogs] = []
 
 	def create_customer(self, name: str, age: int) -> Customer:
 		new_customer = Customer(make_id("C"), name, age)
@@ -147,16 +178,21 @@ class GameStore:
 		self.__customer_list.append(new_log)
 		return new_log
 
-	def create_booking(self, customer_id: str, room_id: str) -> str:
+	def create_booking(self, customer_id: str, room_id: str, start_time: datetime, end_time: datetime) -> str:
 		customer = self.get_customer_by_id(customer_id)
 		if customer is None:
 			raise ValueError("Invalid User")
+		
+		if customer.check_time_availability(start_time, end_time) == False:
+			raise ValueError("Invalid Time Frame")
 
 		room = self.get_room_by_id(room_id)
 		if room is None:
 			raise ValueError("No Room this ID")
 
-		reservation = room.create_reservation(make_id("RE"), customer)
+		reservation = room.create_reservation(make_id("RE"), customer, start_time, end_time)
+		if reservation is None:
+			raise ValueError("Invalid Time Frame")
+		customer.add_reservation(reservation)
 		self.create_customer_logs(customer, CustomerAction.CREATE_RESERVATION)
-		customer.reservation = reservation
-		return "Success"
+		return reservation.id

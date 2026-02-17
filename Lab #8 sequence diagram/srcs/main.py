@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
@@ -29,17 +30,17 @@ def get_available_room():
 	return [room.id for room in store.get_available_room()]
 
 @app.post("/booking")
-def booking(customer_id: str, room_id: str):
+def booking(customer_id: str, room_id: str, start_time: datetime, end_time: datetime):
 	try:
-		return store.create_booking(customer_id, room_id)
+		return store.create_booking(customer_id, room_id, start_time, end_time)
 	except Exception as e:
 		return {e.__str__()}
 
 @app.get("/check_reservation")
-def check_reservation(customer_id: str):
+def check_reservation(customer_id: str, reservation_id: str):
 	customer: Customer = store.get_customer_by_id(customer_id)
-	reservation: Reservation = customer.reservation
-	return reservation.id
+	reservation: Reservation = customer.get_reservation_from_id(reservation_id)
+	return reservation.status
 
 if __name__ == "__main__":
 	uvicorn.run("main:app",host="127.0.0.1",port=8000,reload=True)
