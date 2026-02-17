@@ -65,6 +65,11 @@ alt booking success
 
 	GameStore -> A_Customer : Success
 
+else booking fail (fail to get customer)
+
+	P_Customer -> GameStore : Fail (fail to get customer)
+	GameStore -> A_Customer : Fail (fail to get customer)
+
 else booking fail (fail customer invalid time frame)
 
 	P_Customer -> GameStore : Fail (fail customer invalid time frame)
