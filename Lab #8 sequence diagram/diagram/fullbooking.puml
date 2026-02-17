@@ -1,5 +1,7 @@
 @startuml UsecaseSequenceDiagram
 
+actor Customer
+
 Customer -> GameStore : Get available Room
 activate Customer
 activate GameStore

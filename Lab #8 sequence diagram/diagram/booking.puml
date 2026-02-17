@@ -1,5 +1,7 @@
 @startuml UsecaseSequenceDiagram
 
+actor Customer
+
 Customer -> GameStore : Create booking (roomId)
 activate Customer
 activate GameStore
@@ -28,11 +30,11 @@ alt booking success
 	Room -> GameStore : Reservation
 	deactivate Room
 
-	GameStore -> Transaction : Create Transaction(reservation_id)
-	activate Transaction
-	Transaction -> Transaction : status = Pending
-	Transaction -> GameStore : Transaction Instance
-	deactivate Transaction
+	GameStore -> Logs : Create Logs(customer, reservation)
+	activate Logs
+	Logs -> Logs : action=Create Reservation
+	Logs -> GameStore : Logs
+	deactivate Logs
 
 	GameStore -> Customer : Success
 

@@ -1,5 +1,7 @@
 @startuml GetAvailableSequenceDiagram
 
+actor Customer
+
 Customer -> GameStore : Get available Room
 activate Customer
 activate GameStore

@@ -1,5 +1,7 @@
 @startuml PaymentBookingSequenceDiagram
 
+actor Customer
+
 Customer -> GameStore : Start Payment
 activate Customer
 activate GameStore

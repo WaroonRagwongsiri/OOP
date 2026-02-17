@@ -93,25 +93,18 @@ class Reservation:
 
 	id = property(fget=get_id)
 
-
-class TransactionTypeEnum(Enum):
-	BUY = "B"
-	RENT = "R"
-
-
-class TransactionStatusEnum(Enum):
-	PENDING = "Pending"
-	CANCEL = "Canel"
-	SUCCESS = "Success"
-
-
-class Transaction:
-	def __init__(self, transaction_id: str, customer: Customer, type: TransactionTypeEnum):
+class Logs:
+	def __init__(self, transaction_id: str):
 		self.__transaction_id: str = transaction_id
-		self.__type: TransactionTypeEnum = type
-		self.__customer: Customer = customer
-		self.__status: TransactionStatusEnum = TransactionStatusEnum.PENDING
 
+class CustomerAction(Enum):
+	CREATE_RESERVATION = "Create Reservation"
+
+class CustomerLogs(Logs):
+	def __init__(self, transaction_id: str, customer: Customer, action: CustomerAction):
+		super().__init__(transaction_id)
+		self.__customer: Customer = customer
+		self.__action: CustomerAction = action
 
 class GameStore:
 	def __init__(self, store_name: str):
@@ -119,7 +112,7 @@ class GameStore:
 		self.__store_name: str = store_name
 		self.__customer_list: list[Customer] = []
 		self.__room_list: list[Room] = []
-		self.__transaction_list: list[Transaction] = []
+		self.__customer_logs_list: list[Transaction] = []
 
 	def create_customer(self, name: str, age: int) -> Customer:
 		new_customer = Customer(make_id("C"), name, age)
@@ -149,10 +142,10 @@ class GameStore:
 				return room
 		return None
 
-	def create_transaction(self, customer: Customer, type: TransactionTypeEnum) -> Transaction:
-		new_transaction = Transaction(make_id(f"T-{type.value}"), customer, type)
-		self.__transaction_list.append(new_transaction)
-		return new_transaction
+	def create_customer_logs(self, customer: Customer, action: CustomerAction) -> Transaction:
+		new_log = CustomerLogs(make_id(f"LC-{action}"), customer, action)
+		self.__customer_list.append(new_log)
+		return new_log
 
 	def create_booking(self, customer_id: str, room_id: str) -> str:
 		customer = self.get_customer_by_id(customer_id)
@@ -164,6 +157,6 @@ class GameStore:
 			raise ValueError("No Room this ID")
 
 		reservation = room.create_reservation(make_id("RE"), customer)
-		self.create_transaction(customer, TransactionTypeEnum.RENT)
+		self.create_customer_logs(customer, CustomerAction.CREATE_RESERVATION)
 		customer.reservation = reservation
 		return "Success"
